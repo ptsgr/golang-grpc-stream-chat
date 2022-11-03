@@ -46,6 +46,16 @@ func main() {
 	}
 	user := &gServer.User{}
 	fmt.Println(" --- Hello form golang-grpc-stream-chat --- ")
+	fmt.Println(Yellow + `
+	You connect by Username
+	Send message:
+		username|data
+	Group management:
+		* join-group|GroupName - for join GroupName group 
+		* left-group|GroupName - for left GroupName group
+		* create-group|GroupName - for create group with GroupName
+	List:
+		list - for list users and groups` + Reset)
 	scanner := bufio.NewScanner(os.Stdin)
 	fmt.Print("Input your username: ")
 	if scanner.Scan() {
