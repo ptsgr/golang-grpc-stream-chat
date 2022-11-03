@@ -89,8 +89,9 @@ func (s *Service) SendMessage(ctx context.Context, msg *grpc.Message) (*grpc.Res
 
 	}
 	wait.Wait()
-	if _, ok := s.groups[msg.To]; ok {
+	if _, ok := s.groups[msg.To]; ok && s.getGroupMemberIndex(msg.To, msg.From) >= 0 {
 		msg.From = msg.From + "-" + msg.To + "-group"
+
 		for memberIndex, username := range s.groups[msg.To] {
 			conn := s.getConnectionByUsername(username)
 			if conn == nil {
