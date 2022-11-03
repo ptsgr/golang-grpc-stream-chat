@@ -11,6 +11,7 @@ import (
 	grpc "google.golang.org/grpc"
 	codes "google.golang.org/grpc/codes"
 	status "google.golang.org/grpc/status"
+	emptypb "google.golang.org/protobuf/types/known/emptypb"
 )
 
 // This is a compile-time assertion to ensure that this generated file
@@ -27,6 +28,7 @@ type ChatClient interface {
 	JoinGroupChat(ctx context.Context, in *Group, opts ...grpc.CallOption) (*Response, error)
 	LeftGroupChat(ctx context.Context, in *Group, opts ...grpc.CallOption) (*Response, error)
 	CreateGroupChat(ctx context.Context, in *Group, opts ...grpc.CallOption) (*Response, error)
+	ListChannels(ctx context.Context, in *emptypb.Empty, opts ...grpc.CallOption) (*Response, error)
 }
 
 type chatClient struct {
@@ -105,6 +107,15 @@ func (c *chatClient) CreateGroupChat(ctx context.Context, in *Group, opts ...grp
 	return out, nil
 }
 
+func (c *chatClient) ListChannels(ctx context.Context, in *emptypb.Empty, opts ...grpc.CallOption) (*Response, error) {
+	out := new(Response)
+	err := c.cc.Invoke(ctx, "/grpc.Chat/ListChannels", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // ChatServer is the server API for Chat service.
 // All implementations should embed UnimplementedChatServer
 // for forward compatibility
@@ -114,6 +125,7 @@ type ChatServer interface {
 	JoinGroupChat(context.Context, *Group) (*Response, error)
 	LeftGroupChat(context.Context, *Group) (*Response, error)
 	CreateGroupChat(context.Context, *Group) (*Response, error)
+	ListChannels(context.Context, *emptypb.Empty) (*Response, error)
 }
 
 // UnimplementedChatServer should be embedded to have forward compatible implementations.
@@ -134,6 +146,9 @@ func (UnimplementedChatServer) LeftGroupChat(context.Context, *Group) (*Response
 }
 func (UnimplementedChatServer) CreateGroupChat(context.Context, *Group) (*Response, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method CreateGroupChat not implemented")
+}
+func (UnimplementedChatServer) ListChannels(context.Context, *emptypb.Empty) (*Response, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method ListChannels not implemented")
 }
 
 // UnsafeChatServer may be embedded to opt out of forward compatibility for this service.
@@ -240,6 +255,24 @@ func _Chat_CreateGroupChat_Handler(srv interface{}, ctx context.Context, dec fun
 	return interceptor(ctx, in, info, handler)
 }
 
+func _Chat_ListChannels_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(emptypb.Empty)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ChatServer).ListChannels(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/grpc.Chat/ListChannels",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ChatServer).ListChannels(ctx, req.(*emptypb.Empty))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // Chat_ServiceDesc is the grpc.ServiceDesc for Chat service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -262,6 +295,10 @@ var Chat_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "CreateGroupChat",
 			Handler:    _Chat_CreateGroupChat_Handler,
+		},
+		{
+			MethodName: "ListChannels",
+			Handler:    _Chat_ListChannels_Handler,
 		},
 	},
 	Streams: []grpc.StreamDesc{

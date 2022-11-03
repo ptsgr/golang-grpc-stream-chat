@@ -12,6 +12,7 @@ import (
 	gServer "github.com/ptsgr/golang-grpc-stream-chat/internal/grpc"
 	"github.com/spf13/viper"
 	"google.golang.org/grpc"
+	"google.golang.org/protobuf/types/known/emptypb"
 )
 
 const (
@@ -70,7 +71,7 @@ func main() {
 		scanner := bufio.NewScanner(os.Stdin)
 		for scanner.Scan() {
 			msgData := strings.SplitN(scanner.Text(), "|", 2)
-			if len(msgData) < 2 {
+			if len(msgData) < 2 && msgData[0] != gServer.ListCommand {
 				fmt.Printf("error parse message, msg: %v\n", msgData)
 				continue
 			}
@@ -115,6 +116,16 @@ func main() {
 				}
 				if resp.Error != "" {
 					fmt.Println(Red, "Error: ", resp.Error, Reset)
+					continue
+				}
+			case gServer.ListCommand:
+				resp, err := client.chatClient.ListChannels(context.Background(), &emptypb.Empty{})
+				if err != nil {
+					fmt.Printf("Error Sending Message: %v", err)
+					break
+				}
+				if resp.Error != "" {
+					fmt.Println(Yellow, "----------\nList: ", resp.Error, "----------", Reset)
 					continue
 				}
 			default:

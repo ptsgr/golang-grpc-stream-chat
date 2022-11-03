@@ -2,9 +2,11 @@ package service
 
 import (
 	"context"
+	"fmt"
 	"sync"
 
 	"google.golang.org/grpc/grpclog"
+	"google.golang.org/protobuf/types/known/emptypb"
 
 	"github.com/ptsgr/golang-grpc-stream-chat/internal/grpc"
 )
@@ -164,4 +166,21 @@ func (s *Service) CreateGroupChat(ctx context.Context, group *grpc.Group) (*grpc
 	}
 	s.groups[group.Name] = []string{group.Username}
 	return &grpc.Response{}, nil
+}
+
+func (s *Service) ListChannels(context.Context, *emptypb.Empty) (*grpc.Response, error) {
+	s.logger.Infof(" --- List request ---")
+	var list = "\n"
+	for _, conn := range s.connections {
+		list = list + fmt.Sprintf("user: %s\n", conn.username)
+	}
+	for groupName, members := range s.groups {
+		list = list + fmt.Sprintf("group: %s\n", groupName)
+		for _, member := range members {
+			list = list + fmt.Sprintf("group \"%s\" member: %s\n", groupName, member)
+		}
+	}
+	return &grpc.Response{
+		Error: list,
+	}, nil
 }

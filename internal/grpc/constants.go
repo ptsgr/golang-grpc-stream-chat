@@ -10,4 +10,5 @@ const (
 	JoinGroupChatCommand   = "join-group"
 	LeftGroupChatCommand   = "left-group"
 	CreateGroupChatCommand = "create-group"
+	ListCommand            = "list"
 )
