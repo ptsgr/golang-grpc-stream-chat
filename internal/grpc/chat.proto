@@ -1,0 +1,35 @@
+syntax = "proto3";
+option go_package = "./;grpc";
+
+package grpc;
+
+
+message User {
+  string name = 1;
+}
+
+message Group {
+  string name = 1;
+  string username = 2;
+}
+
+message Message {
+  string from = 1;
+  string to = 2;
+  string content = 3;
+}
+
+message ListChannels {
+
+}
+
+message Response {}
+
+
+service Chat {
+  rpc CreateDirectStream(User) returns (stream Message);
+  rpc SendMessage(Message) returns (Response);
+  rpc JoinGroupChat(Group) returns (Response);
+  rpc LeftGroupChat(Group) returns (Response);
+  rpc CreateGroupChat(Group) returns (Response);
+}
