@@ -18,6 +18,13 @@ const (
 	grpcPort = "grpc.port"
 )
 
+var (
+	Reset  = "\033[0m"
+	Red    = "\033[31m"
+	Green  = "\033[32m"
+	Yellow = "\033[33m"
+)
+
 type grpcClient struct {
 	chatClient gServer.ChatClient
 	wg         *sync.WaitGroup
@@ -62,22 +69,68 @@ func main() {
 
 		scanner := bufio.NewScanner(os.Stdin)
 		for scanner.Scan() {
-			msgData := strings.SplitN(scanner.Text(), " >:", 2)
+			msgData := strings.SplitN(scanner.Text(), "|", 2)
 			if len(msgData) < 2 {
 				fmt.Printf("error parse message, msg: %v\n", msgData)
 				continue
 			}
-			msg := &gServer.Message{
-				From:    user.Name,
-				To:      msgData[0],
-				Content: msgData[1],
+			switch msgData[0] {
+			case gServer.CreateGroupChatCommand:
+				grp := &gServer.Group{
+					Username: user.Name,
+					Name:     msgData[1],
+				}
+				resp, err := client.chatClient.CreateGroupChat(context.Background(), grp)
+				if err != nil {
+					fmt.Printf("Error Sending Message: %v", err)
+					break
+				}
+				if resp.Error != "" {
+					fmt.Println(Red, "Error: ", resp.Error, Reset)
+					continue
+				}
+			case gServer.JoinGroupChatCommand:
+				grp := &gServer.Group{
+					Username: user.Name,
+					Name:     msgData[1],
+				}
+				resp, err := client.chatClient.JoinGroupChat(context.Background(), grp)
+				if err != nil {
+					fmt.Printf("Error Sending Message: %v", err)
+					break
+				}
+				if resp.Error != "" {
+					fmt.Println(Red, "Error: ", resp.Error, Reset)
+					continue
+				}
+			case gServer.LeftGroupChatCommand:
+				grp := &gServer.Group{
+					Username: user.Name,
+					Name:     msgData[1],
+				}
+				resp, err := client.chatClient.LeftGroupChat(context.Background(), grp)
+				if err != nil {
+					fmt.Printf("Error Sending Message: %v", err)
+					break
+				}
+				if resp.Error != "" {
+					fmt.Println(Red, "Error: ", resp.Error, Reset)
+					continue
+				}
+			default:
+				msg := &gServer.Message{
+					From:    user.Name,
+					To:      msgData[0],
+					Content: msgData[1],
+				}
+
+				_, err := client.chatClient.SendMessage(context.Background(), msg)
+				if err != nil {
+					fmt.Printf("Error Sending Message: %v", err)
+					break
+				}
 			}
 
-			_, err := client.chatClient.SendMessage(context.Background(), msg)
-			if err != nil {
-				fmt.Printf("Error Sending Message: %v", err)
-				break
-			}
 		}
 
 	}()
@@ -105,7 +158,7 @@ func (c *grpcClient) connectAndListen(user *gServer.User) {
 			break
 		}
 
-		fmt.Printf("%v <:%s\n", msg.From, msg.Content)
+		fmt.Printf("%s%v%s|%s\n", Green, msg.From, Reset, msg.Content)
 	}
 
 	c.error <- streamerror

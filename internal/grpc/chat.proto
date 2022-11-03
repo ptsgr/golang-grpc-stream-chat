@@ -23,7 +23,9 @@ message ListChannels {
 
 }
 
-message Response {}
+message Response {
+  string error = 1;
+}
 
 
 service Chat {
