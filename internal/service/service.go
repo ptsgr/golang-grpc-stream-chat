@@ -35,7 +35,16 @@ func (s *Service) addConnection(conn *Connection) {
 	s.connections = append(s.connections, conn)
 }
 
-func (s *Service) getGroupMember(grp, usr string) int {
+func (s *Service) getConnectionByUsername(username string) *Connection {
+	for _, v := range s.connections {
+		if v.username == username {
+			return v
+		}
+	}
+	return nil
+}
+
+func (s *Service) getGroupMemberIndex(grp, usr string) int {
 	for k, v := range s.groups[grp] {
 		if v == usr {
 			return k
@@ -79,6 +88,29 @@ func (s *Service) SendMessage(ctx context.Context, msg *grpc.Message) (*grpc.Res
 		}(msg, conn)
 
 	}
+	wait.Wait()
+	if _, ok := s.groups[msg.To]; ok {
+		msg.From = msg.From + "-" + msg.To + "-group"
+		for memberIndex, username := range s.groups[msg.To] {
+			conn := s.getConnectionByUsername(username)
+			if conn == nil {
+				s.removeGroupMember(msg.To, memberIndex)
+			}
+			wait.Add(1)
+			go func(msg *grpc.Message, conn *Connection) {
+				defer wait.Done()
+
+				err := conn.stream.Send(msg)
+				s.logger.Info("Sending message to: ", conn.stream, " for user: ", conn.username)
+
+				if err != nil {
+					s.logger.Errorf("Error with Stream: %v - Error: %v", conn.stream, err)
+					conn.error <- err
+				}
+			}(msg, conn)
+
+		}
+	}
 
 	go func() {
 		wait.Wait()
@@ -95,7 +127,7 @@ func (s *Service) JoinGroupChat(ctx context.Context, group *grpc.Group) (*grpc.R
 			Error: grpc.ErrGroupNotFound,
 		}, nil
 	}
-	if s.getGroupMember(group.Name, group.Username) < 0 {
+	if s.getGroupMemberIndex(group.Name, group.Username) < 0 {
 		s.groups[group.Name] = append(s.groups[group.Name], group.Username)
 	}
 	return &grpc.Response{}, nil
@@ -111,7 +143,7 @@ func (s *Service) LeftGroupChat(ctx context.Context, group *grpc.Group) (*grpc.R
 		s.logger.Infof(" --- Group \"%s\" deleted ---", group.Name)
 		delete(s.groups, group.Name)
 	} else {
-		memberIndex := s.getGroupMember(group.Name, group.Username)
+		memberIndex := s.getGroupMemberIndex(group.Name, group.Username)
 		if memberIndex < 0 {
 			return &grpc.Response{
 				Error: grpc.ErrNotGroupMember,
